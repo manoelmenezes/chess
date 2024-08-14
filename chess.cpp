@@ -62,8 +62,6 @@ class MoveCalculator {
     virtual MoveResult canMove(Board* board, Position& from, Position& to) = 0;
 };
 
-std::map<Piece, MoveCalculator*> calculators;
-
 class BPiece {
     Piece piece;
     Color color;
@@ -92,23 +90,24 @@ class BPiece {
      * So this method validates if the piece at 'from' position
      * can move to 'to' position.
      */
-    MoveResult canMove(Board* b, Position& from, Position& to) {
-      return calculators.at(this->piece)->canMove(b, from, to);
-    }
+
+    MoveResult canMove(Board* b, Position& from, Position& to);
+
 };
 
 class Board {
     BPiece* b[8][8];
     Color current;
     Position enPassant = Position(-1, -1);
-    bool blackKingMoved;
-    bool blackLeftRookMoved;
-    bool blackRightRookMoved;
-    bool whiteKingMoved;
-    bool whiteLeftRookMoved;
-    bool whiteRightRookMoved;
+    bool blackKingMoved = false;
+    bool blackLeftRookMoved = false;
+    bool blackRightRookMoved = false;
+    bool whiteKingMoved = false;
+    bool whiteLeftRookMoved = false;
+    bool whiteRightRookMoved = false;
     Position promotion = Position(-1, -1);
-    bool checkmate;
+    bool checkmate = false;
+    std::map<Piece, MoveCalculator*> calculators;
     Position validatePosition(string p) {
       if (p.size() != 2) {
         throw logic_error("Position must have two chars, e.g., a2!");
@@ -123,6 +122,7 @@ class Board {
       }
       return Position('8' - row, column - 'a');
     }
+    void init();
   public:
     Board() {
 
@@ -200,6 +200,8 @@ class Board {
       b[7][5] = new BPiece(Piece::B, Color::W);
       b[7][6] = new BPiece(Piece::H, Color::W);
       b[7][7] = new BPiece(Piece::R, Color::W);
+
+      init();
     }
 
     ~Board() {
@@ -210,6 +212,10 @@ class Board {
 	    }
 	}
       }
+    }
+
+    MoveResult canMovePiece(Piece& p, Position& from, Position& to) {
+      return calculators.at(p)->canMove(this, from, to);
     }
    
     void setBlackKingMoved() {
@@ -834,14 +840,21 @@ class QueenMoveCalculator : public MoveCalculator {
     }
 };
 
-int main() {
-
+void Board::init() {
       calculators[Piece::P] = new PawnMoveCalculator;
       calculators[Piece::B] = new BishopMoveCalculator;
       calculators[Piece::H] = new HorseMoveCalculator;
       calculators[Piece::R] = new RookMoveCalculator;
       calculators[Piece::Q] = new QueenMoveCalculator;
       calculators[Piece::K] = new KingMoveCalculator;
+}
+
+MoveResult BPiece::canMove(Board* b, Position& from, Position& to) {
+  return b->canMovePiece(this->piece, from, to);
+}
+
+int main() {
+
     Board b;
     b.print();
     string from;
@@ -889,3 +902,4 @@ int main() {
     }
     return 0;
 }
+
